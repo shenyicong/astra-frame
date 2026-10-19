@@ -86,7 +86,7 @@ python -m http.server 8000
 npx serve .
 ```
 
-启动后访问自己的本地地址（如 `http://localhost:8000`）即可调试。
+启动后按终端打印的地址在浏览器打开即可调试。
 
 ## 🗂️ 目录结构
 
