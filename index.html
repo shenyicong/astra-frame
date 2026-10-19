@@ -133,6 +133,17 @@
     opacity: 0; transition: opacity .28s ease-out;
   }
 
+  #toast {
+    position: fixed; left: 50%; bottom: 12%; transform: translateX(-50%) translateY(8px);
+    z-index: 11; pointer-events: none;
+    padding: 8px 18px; border-radius: 999px;
+    background: rgba(6, 12, 22, .78); border: 1px solid rgba(0, 240, 255, .35);
+    color: #9fe8ff; font: 600 13px/1 'JetBrains Mono', Consolas, monospace;
+    letter-spacing: .5px; box-shadow: 0 0 18px rgba(0, 240, 255, .18);
+    opacity: 0; transition: opacity .2s ease, transform .2s ease;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
   /* ============ 覆盖层（开始 / 暂停） ============ */
   #overlay {
     position: fixed; inset: 0; z-index: 30;
@@ -240,6 +251,7 @@
 </div>
 
 <div id="damageFlash"></div>
+<div id="toast"></div>
 <div id="touchHint">移动端可用左侧摇杆移动 · 右侧滑动转向</div>
 
 <!-- ==================== 开始 / 暂停 ==================== -->
@@ -258,6 +270,8 @@
     <div><kbd>R</kbd> 换弹</div>
     <div><kbd>Esc</kbd> 暂停</div>
     <div><kbd>M</kbd> 静音</div>
+    <div><kbd>[</kbd><kbd>]</kbd> 调整鼠标灵敏度</div>
+    <div><kbd>V</kbd> 切换视角距离</div>
   </div>
 
   <div class="cta" id="cta">点击开始</div>

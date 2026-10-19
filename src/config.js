@@ -38,6 +38,27 @@ export const PLAYER = {
   eyeHeight: 1.62,
 };
 
+/**
+ * 第三人称相机 & 鼠标手感
+ * ---------------------------------------------------------------
+ * sensitivity 单位：弧度 / 像素。默认 0.00095 属于偏慢的精确档，
+ * 游戏中用 [ 和 ] 可在 0.0004 ~ 0.0026 之间实时微调（存 localStorage）。
+ */
+export const CAMERA = {
+  sensitivity: 0.00095,  // 鼠标灵敏度（水平）
+  pitchScale: 0.82,      // 垂直灵敏度相对水平的倍率
+  minSensitivity: 0.0004,
+  maxSensitivity: 0.0026,
+  distance: 5.4,         // 第三人称机位距离（米）
+  height: 0.62,          // 机位相对头部再抬高（米）
+  shoulder: 0.95,        // 右肩偏移，形成过肩视角
+  minDistance: 1.15,     // 贴墙时最短距离，避免穿模
+  pitchMin: -0.35,       // 俯角下限（向下看）
+  pitchMax: 0.62,        // 仰角上限（向上看）
+  followLambda: 0.0015,  // 机位跟随平滑系数（越小越跟手）
+  aimDistance: 12,       // 视线落点距离
+};
+
 export const WEAPON = {
   name: 'BRATON',
   fireRate: 9.5,       // 每秒发数

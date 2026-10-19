@@ -7,7 +7,7 @@
  */
 
 import * as THREE from '../vendor/three.module.js';
-import { MAP, MAP_W, MAP_D, PERF, FIXED_DT, MAX_SUBSTEPS, COLORS, ENEMY } from './config.js';
+import { MAP, MAP_W, MAP_D, PERF, FIXED_DT, MAX_SUBSTEPS, COLORS, ENEMY, CAMERA } from './config.js';
 import { Arena } from './arena.js';
 import { FogOfWar } from './fog.js';
 import { Warframe } from './warframe.js';
@@ -105,6 +105,14 @@ addEventListener('keydown', (e) => {
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') input.sprint = true;
   if (e.code === 'KeyR') { player.startReload(); audio.reload(); }
   if (e.code === 'KeyM') audio.toggleMute();
+  if (e.code === 'BracketLeft') setSensitivity(sensitivity - 0.00015);
+  if (e.code === 'BracketRight') setSensitivity(sensitivity + 0.00015);
+  if (e.code === 'KeyV') {
+    const presets = [4.2, 5.4, 6.8];
+    const i = presets.findIndex((v) => Math.abs(v - CAMERA.distance) < 0.01);
+    CAMERA.distance = presets[(i + 1) % presets.length];
+    toast(`视角距离 ${CAMERA.distance.toFixed(1)} 米`);
+  }
   if (e.code === 'Escape') togglePause();
   if (e.code === 'Space' && input.jump && player.onGround) audio.jump();
 });
@@ -120,14 +128,41 @@ canvas.addEventListener('mousedown', (e) => {
 });
 addEventListener('mouseup', () => { input.fire = false; });
 
+/* ============================ 鼠标灵敏度 ============================ */
+
+const SENS_KEY = 'astra.sensitivity';
+let sensitivity = CAMERA.sensitivity;
+try {
+  const saved = parseFloat(localStorage.getItem(SENS_KEY));
+  if (Number.isFinite(saved)) {
+    sensitivity = Math.min(CAMERA.maxSensitivity, Math.max(CAMERA.minSensitivity, saved));
+  }
+} catch (_) { /* localStorage 不可用时用默认值 */ }
+
+/** 显示一行临时提示 */
+let toastTimer = 0;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+function setSensitivity(v) {
+  sensitivity = Math.min(CAMERA.maxSensitivity, Math.max(CAMERA.minSensitivity, v));
+  try { localStorage.setItem(SENS_KEY, String(sensitivity)); } catch (_) {}
+  toast(`灵敏度 ${sensitivity.toFixed(4)}`);
+}
+
 addEventListener('mousemove', (e) => {
   if (!running || paused) return;
   const locked = document.pointerLockElement === canvas;
   if (!locked && !input.fire) return;   // 未锁定时按住左键拖动也能转向
-  const sx = 0.0022;
-  player.camYaw -= (e.movementX || 0) * sx;
-  player.camPitch -= (e.movementY || 0) * sx * 0.8;
-  player.camPitch = Math.max(-0.9, Math.min(0.62, player.camPitch));
+  player.camYaw -= (e.movementX || 0) * sensitivity;
+  player.camPitch -= (e.movementY || 0) * sensitivity * CAMERA.pitchScale;
+  player.camPitch = Math.max(CAMERA.pitchMin, Math.min(CAMERA.pitchMax, player.camPitch));
 });
 
 canvas.addEventListener('click', () => {
