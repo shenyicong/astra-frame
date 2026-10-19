@@ -108,6 +108,20 @@
   }
   #explored b { color: #00f0ff; font-weight: 600; }
 
+  /* 探索进度条：达到目标后整条变绿 */
+  #exploreBar {
+    margin-top: 5px; height: 3px; border-radius: 2px;
+    background: rgba(0, 240, 255, .13); overflow: hidden;
+    border: 1px solid rgba(0, 240, 255, .18);
+  }
+  #exploreBar i {
+    display: block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, #00f0ff, #7b61ff);
+    transition: width .25s ease;
+  }
+  #exploreBar.done { border-color: rgba(0, 255, 157, .55); }
+  #exploreBar.done i { background: linear-gradient(90deg, #00ff9d, #b6ff6b); }
+
   /* ============ 右上：战况 ============ */
   #status {
     position: absolute; right: 34px; top: 34px;
@@ -227,10 +241,12 @@
   <div id="mapWrap">
     <canvas id="minimap" width="336" height="336"></canvas>
     <div id="explored">区域已探索 <b id="exploredVal">0%</b></div>
+    <div id="exploreBar"><i id="exploreGoal"></i></div>
   </div>
 
   <div id="status">
-    <div>任务 · <b>清剿残存单位</b></div>
+    <div>区域 <b id="levelVal">1 / 3</b></div>
+    <div>任务 · <b>探索并清剿</b></div>
     <div class="kill">击杀 <b id="kills">0</b></div>
     <div>存活单位 <b id="alive">0</b></div>
   </div>

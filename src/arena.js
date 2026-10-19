@@ -199,8 +199,9 @@ export class Arena {
       const cz = (j + 0.5) * MAP.tile - HALF_D;
       const sc = 0.8 + rand() * 0.5;
       crates.push([cx, cz, sc]);
-      // 碰撞体：箱子会挡住人和敌人，避免穿模
-      this.crateColliders.push({ x: cx, z: cz, r: 0.58 * sc });
+      // 碰撞体：箱子会挡住人和敌人，避免穿模。
+      // top = 箱子实际高度（底面贴地），角色脚底高于 top 时即可越过。
+      this.crateColliders.push({ x: cx, z: cz, r: 0.58 * sc, top: 1.1 * sc });
     }
 
     const crateMesh = new THREE.InstancedMesh(crateGeo, crateMat, crates.length);
@@ -245,11 +246,11 @@ export class Arena {
     const mat = new THREE.ShaderMaterial({
       uniforms: {
         fogMap: { value: fogTexture },
-        // 已探索（记忆区）：柔和冷白，不刺眼
-        uMemory: { value: new THREE.Color(0xcfd9e6) },
+        // 已探索（记忆区）：明显的白色高亮，不再变暗
+        uMemory: { value: new THREE.Color(0xffffff) },
         // 当前视野内：青色能量光
         uActive: { value: new THREE.Color(0x39e7ff) },
-        uMemoryLevel: { value: 0.34 },
+        uMemoryLevel: { value: 0.62 },
         uActiveLevel: { value: 1.15 },
       },
       vertexShader: /* glsl */`
@@ -270,12 +271,14 @@ export class Arena {
         varying vec2 vFogUv;
         void main() {
           float f = texture2D(fogMap, vFogUv).r;
-          if (f < 0.10) discard;              // 未探索：完全不绘制
+          if (f < 0.02) discard;              // 未探索：完全不绘制
           // 0 = 只残留记忆（走过但不在视野内），1 = 正处在视野中
           float t = smoothstep(0.58, 0.95, f);
           vec3  c = mix(uMemory, uActive, t);
           float l = mix(uMemoryLevel, uActiveLevel, t);
-          gl_FragColor = vec4(c * l, 1.0);
+          // 已探索区域统一加一层白色高亮，走没走过一眼可辨
+          c += vec3(0.55) * (1.0 - t);
+          gl_FragColor = vec4(c * l + vec3(0.10) * (1.0 - t), 1.0);
         }
       `,
     });
@@ -318,12 +321,34 @@ export class Arena {
    * 圆形与网格的碰撞消解：检查周围 3×3 格，
    * 与实心格做「圆 vs AABB」最近点推出。逐轴处理，避免卡角。
    */
-  resolveCircle(pos, radius) {
+  /**
+   * 查询某位置下方可站立的箱顶高度（脚底贴上去用）。
+   * 只有当角色水平圆与箱子圆有重叠时才算数。
+   * @returns {number} 箱顶高度；没有箱子返回 0
+   */
+  crateTopAt(x, z, radius) {
+    let best = 0;
+    for (const c of this.crateColliders) {
+      const dx = x - c.x, dz = z - c.z;
+      const rr = radius + c.r * 0.92;   // 略微收紧，避免边缘悬空
+      if (dx * dx + dz * dz > rr * rr) continue;
+      if (c.top > best) best = c.top;
+    }
+    return best;
+  }
+
+  /**
+   * @param {THREE.Vector3} pos 角色水平位置
+   * @param {number} radius 半径
+   * @param {number} footY 脚底世界高度：高于箱子顶面时不再被箱子阻挡（跳过去）
+   */
+  resolveCircle(pos, radius, footY = 0) {
     const t = MAP.tile;
     const [ci, cj] = this.cellOf(pos.x, pos.z);
 
     // 先看货箱（圆 vs 圆），数量少、开销可忽略
     for (const c of this.crateColliders) {
+      if (footY > c.top) continue;   // 已跳过箱顶，不参与碰撞
       let dx = pos.x - c.x;
       let dz = pos.z - c.z;
       let d2 = dx * dx + dz * dz;

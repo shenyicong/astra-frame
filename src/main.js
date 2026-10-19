@@ -7,7 +7,7 @@
  */
 
 import * as THREE from '../vendor/three.module.js';
-import { MAP, MAP_W, MAP_D, PERF, FIXED_DT, MAX_SUBSTEPS, COLORS, ENEMY, CAMERA } from './config.js';
+import { MAP, MAP_W, MAP_D, PERF, FIXED_DT, MAX_SUBSTEPS, COLORS, CAMERA, LEVEL } from './config.js';
 import { Arena } from './arena.js';
 import { FogOfWar } from './fog.js';
 import { Warframe } from './warframe.js';
@@ -64,7 +64,6 @@ const fog = new FogOfWar(scene);
 const arena = new Arena(scene, fog.texture);
 const player = new Warframe(scene, camera, new THREE.Vector3(0, 0, 0));
 const enemies = new EnemyManager(scene, arena, fog);
-enemies.populate(ENEMY.totalCount, player.pos);
 const combat = new Combat(scene, arena, enemies);
 const hud = new HUD(arena, fog);
 const audio = new GameAudio();
@@ -77,6 +76,49 @@ combat.onPlayerDamaged = () => {
   hud.damageFlash();
   audio.hurt();
 };
+
+/* ============================ 关卡状态 ============================ */
+
+const SPAWN = new THREE.Vector3(0, 0, 0);
+
+let level = 1;
+/** 结算流程状态：null = 正常游玩；'clear' = 已达标等待切关；'win'/'lose' = 已结束 */
+let outcome = null;
+let nextLevelTimer = 0;
+
+/** 按关卡序号装载敌人与探索起点 */
+function loadLevel(n) {
+  const conf = LEVEL.scaling[Math.min(n, LEVEL.scaling.length) - 1];
+  enemies.clearAll();
+  // 逐关微调敌人数与血量（配置里给的是基准，这里叠乘）
+  enemies.populate(conf.count, SPAWN);
+  enemies.hpMul = conf.hpMul;
+  enemies.speedMul = conf.speedMul;
+  fog.reset(SPAWN);
+}
+
+/** 达成通关条件：探索率达标 且 场上敌人清空 */
+function levelCleared() {
+  return fog.exploredRatio >= LEVEL.exploreTarget && enemies.remaining === 0;
+}
+
+function advanceLevel() {
+  if (level >= LEVEL.total) {
+    outcome = 'win';
+    finished = true;
+    audio.win();
+    endGame('全部区域肃清', `第 ${level} 区 · 任务完成`);
+    return;
+  }
+  level++;
+  outcome = null;
+  nextLevelTimer = 0;
+  player.respawn(SPAWN);
+  loadLevel(level);
+  hud.setLevel(level, LEVEL.total, 0);
+  toast(`进入第 ${level} 区`);
+  audio.win();
+}
 
 /* ============================ 输入 ============================ */
 
@@ -305,16 +347,22 @@ function step(dt) {
     player.camPitch += 0.006 + Math.random() * 0.004;
   }
 
-  // 胜负判定
+  // 胜负 / 关卡推进
   if (!finished) {
     if (!player.alive) {
+      outcome = 'lose';
       finished = true;
       audio.lose();
-      endGame('任务失败', '战甲已损毁');
-    } else if (enemies.remaining === 0) {
-      finished = true;
-      audio.win();
-      endGame('区域肃清', '全部目标已清除');
+      endGame('任务失败', `第 ${level} 区 · 战甲已损毁`);
+    } else if (outcome === null && levelCleared()) {
+      // 探索达标且清场：先停留一会儿，再进入下一区
+      outcome = 'clear';
+      nextLevelTimer = LEVEL.nextDelay;
+      audio.kill();
+      toast(level >= LEVEL.total ? '最终区域已肃清' : '区域肃清 · 即将进入下一区');
+    } else if (outcome === 'clear') {
+      nextLevelTimer -= dt;
+      if (nextLevelTimer <= 0) advanceLevel();
     }
   }
 }
@@ -325,7 +373,11 @@ function endGame(title, sub) {
   overlay.classList.remove('hidden');
   document.querySelector('#overlay h1').textContent = title;
   document.querySelector('#overlay .sub').textContent = sub;
-  ctaEl.textContent = '刷新页面重新开始';
+  ctaEl.textContent = outcome === 'win' ? '刷新页面再来一局' : '刷新页面重新开始';
 }
+
+/* 开局：装载第一关 */
+loadLevel(level);
+hud.setLevel(level, LEVEL.total, LEVEL.exploreTarget);
 
 frame();

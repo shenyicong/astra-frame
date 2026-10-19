@@ -29,6 +29,8 @@ export class HUD {
       crosshair: document.getElementById('crosshair'),
       flash: document.getElementById('damageFlash'),
       minimap: document.getElementById('minimap'),
+      level: document.getElementById('levelVal'),
+      exploreGoal: document.getElementById('exploreGoal'),
     };
 
     this.mmCtx = this.el.minimap.getContext('2d');
@@ -42,6 +44,7 @@ export class HUD {
     this.tileImg = this.tileCtx.createImageData(MAP.cols, MAP.rows);
     for (let i = 0; i < MAP.cols * MAP.rows; i++) this.tileImg.data[i * 4 + 3] = 255;
 
+    this.goalRatio = 0.72;   // 由 setLevel 覆盖
     this._mmTimer = 0;
     this._hitTimer = 0;
     this._fpsAcc = 0;
@@ -98,8 +101,21 @@ export class HUD {
     if (this._mmTimer <= 0) {
       this._mmTimer = 0.1;
       this._drawMinimap(player, enemies);
-      this.el.explored.textContent = (this.fog.exploredRatio * 100).toFixed(1) + '%';
+      const pct = this.fog.exploredRatio * 100;
+      this.el.explored.textContent = pct.toFixed(1) + '%';
+      // 探索进度条：达标后变绿
+      if (this.el.exploreGoal) {
+        this.el.exploreGoal.style.width = Math.min(100, pct / (this.goalRatio * 100) * 100).toFixed(1) + '%';
+        this.el.exploreGoal.parentElement.classList.toggle('done', this.fog.exploredRatio >= this.goalRatio);
+      }
     }
+  }
+
+  /** 新关卡时刷新关卡号与探索目标 */
+  setLevel(level, total, goalRatio) {
+    this.goalRatio = goalRatio;
+    if (this.el.level) this.el.level.textContent = `${level} / ${total}`;
+    if (this.el.exploreGoal) this.el.exploreGoal.style.width = '0%';
   }
 
   /* ============================ 小地图 ============================ */

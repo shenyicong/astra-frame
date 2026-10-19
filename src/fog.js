@@ -72,6 +72,18 @@ export class FogOfWar {
     this.overlay = mesh;
   }
 
+  /** 进入新关卡：清空探索记录，只保留出生点周围一小块 */
+  reset(playerPos) {
+    this.data.fill(0);
+    this.exploredRatio = 0;
+    this._timer = 0;
+    this._lastCell = -1;
+    const i = Math.floor((playerPos.x + MAP_W / 2) / MAP.tile);
+    const j = Math.floor((playerPos.z + MAP_D / 2) / MAP.tile);
+    this._reveal(i, j, FOG.revealRadius);
+    this._upload();
+  }
+
   /** 每帧调用：按冷却节流刷新 */
   update(dt, playerPos) {
     this._timer -= dt;
@@ -102,8 +114,8 @@ export class FogOfWar {
           const v = 1 - (dist / radius) * soft;
           if (v > this.data[idx]) this.data[idx] = v;
         } else if (this.data[idx] > FOG.softKeep) {
-          // 离开视野后逐渐暗到「记忆亮度」
-          this.data[idx] = Math.max(FOG.softKeep, this.data[idx] - 0.02);
+          // 离开视野后缓慢回落到「已探索」基准亮度（不再变黑）
+          this.data[idx] = Math.max(FOG.softKeep, this.data[idx] - 0.06);
         }
         if (this.data[idx] > 0.1) explored++;
       }

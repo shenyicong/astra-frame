@@ -22,6 +22,8 @@ export class EnemyManager {
     this.fog = fog;
     this.list = [];
     this.kills = 0;
+    this.hpMul = 1;      // 关卡血量倍率
+    this.speedMul = 1;   // 关卡移速倍率
 
     // 共享材质，减少 GPU 状态切换
     this.mats = {
@@ -87,7 +89,7 @@ export class EnemyManager {
       });
       this.scene.add(g);
       return {
-        type, group: g, pos: g.position, hp: ENEMY.health, alive: true,
+        type, group: g, pos: g.position, hp: ENEMY.health * this.hpMul, alive: true,
         state: 'patrol', fireTimer: this.rand() * 1.5, legs: [legL, legR], arm: armR,
         phase: this.rand() * 6.28, target: null, dying: 0, hitFlash: 0,
       };
@@ -105,7 +107,7 @@ export class EnemyManager {
 
     this.scene.add(g);
     return {
-      type, group: g, pos: g.position, hp: ENEMY.health * 0.8, alive: true,
+      type, group: g, pos: g.position, hp: ENEMY.health * 0.8 * this.hpMul, alive: true,
       state: 'patrol', fireTimer: this.rand() * 1.5, ring, eye,
       phase: this.rand() * 6.28, target: null, dying: 0, hitFlash: 0,
     };
@@ -158,11 +160,11 @@ export class EnemyManager {
         if (e.target) {
           const tx = e.target.x - e.pos.x, tz = e.target.z - e.pos.z;
           const tl = Math.hypot(tx, tz) || 1;
-          wishX = tx / tl; wishZ = tz / tl; speed = ENEMY.speed;
+          wishX = tx / tl; wishZ = tz / tl; speed = ENEMY.speed * this.speedMul;
         }
       } else if (e.state === 'chase') {
         wishX = dx / (dist || 1); wishZ = dz / (dist || 1);
-        speed = ENEMY.chaseSpeed;
+        speed = ENEMY.chaseSpeed * this.speedMul;
       } else { // attack：保持中距离并侧移
         const sign = e.phase > 3.14 ? 1 : -1;
         wishX = (dx / (dist || 1)) * 0.35 + (-dz / (dist || 1)) * sign * 0.8;
@@ -272,6 +274,15 @@ export class EnemyManager {
       return true;
     }
     return false;
+  }
+
+  /** 清空当前关卡的全部敌人（换关时调用），并释放几何体 */
+  clearAll() {
+    for (const e of this.list) {
+      this.scene.remove(e.group);
+      e.group.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose(); });
+    }
+    this.list.length = 0;
   }
 
   get remaining() {

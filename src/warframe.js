@@ -145,6 +145,38 @@ export class Warframe {
     this.group.traverse(o => { if (o.isMesh) o.castShadow = true; });
   }
 
+  /* ============================ 关卡重置 ============================ */
+
+  /**
+   * 进入新关卡：回到出生点、补满状态，保留当前灵敏度与视角设置。
+   * @param {THREE.Vector3} spawn 出生点
+   */
+  respawn(spawn) {
+    this.pos.copy(spawn);
+    this.vel.set(0, 0, 0);
+    this.y = 0;
+    this.vy = 0;
+    this.onGround = true;
+    this.camYaw = 0;
+    this.camPitch = -0.12;
+    this.bodyYaw = 0;
+
+    this.health = PLAYER.maxHealth;
+    this.shield = PLAYER.maxShield;
+    this.alive = true;
+    this.lastHitTime = -99;
+
+    this.ammo = WEAPON.magSize;
+    this.reloading = false;
+    this.reloadTimer = 0;
+    this.fireTimer = 0;
+    this.recoil = 0;
+
+    this.group.position.set(spawn.x, 0, spawn.z);
+    this.group.rotation.set(0, 0, 0);
+    this.group.visible = true;
+  }
+
   /* ============================ 移动 ============================ */
 
   update(dt, input, arena, time) {
@@ -187,14 +219,28 @@ export class Warframe {
       this.vy = PLAYER.jumpSpeed;
       this.onGround = false;
     }
+    const prevY = this.y;
     this.vy -= PLAYER.gravity * dt;
     this.y += this.vy * dt;
-    if (this.y <= 0) { this.y = 0; this.vy = 0; this.onGround = true; }
 
-    /* --- 位移 + 碰撞 --- */
+    /* --- 水平位移 + 碰撞（脚底高于箱顶时箱子不挡路，可直接越过） --- */
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
-    arena.resolveCircle(this.pos, PLAYER.radius);
+    arena.resolveCircle(this.pos, PLAYER.radius, this.y);
+
+    /* --- 地面 / 箱顶支撑 --- */
+    let groundY = 0;
+    const standY = arena.crateTopAt(this.pos.x, this.pos.z, PLAYER.radius);
+    // 只有「下落中且上一帧还在箱顶之上」才站上箱子，避免从侧面穿上去
+    if (standY > 0 && this.vy <= 0 && prevY >= standY - 0.12) groundY = standY;
+
+    if (this.y <= groundY) {
+      this.y = groundY;
+      this.vy = 0;
+      this.onGround = true;
+    } else {
+      this.onGround = false;
+    }
 
     /* --- 朝向：机体平滑转向相机朝向 --- */
     this.bodyYaw = this._lerpAngle(this.bodyYaw, this.camYaw, 1 - Math.pow(0.0008, dt));

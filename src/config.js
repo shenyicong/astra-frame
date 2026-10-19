@@ -18,7 +18,7 @@ export const MAP_D = MAP.rows * MAP.tile;
 
 export const FOG = {
   revealRadius: 7,     // 视野半径（格），约 11 米 —— 所以只能看见地图一小块
-  softKeep: 0.62,      // 离开视野后保留的可见度（记忆效果）
+  softKeep: 0.66,      // 离开视野后保留的可见度；保持较高值 = 走过的地方持续高亮
   updateInterval: 0.08,// 迷雾刷新最小间隔（秒），避免每帧重绘贴图
 };
 
@@ -102,6 +102,24 @@ export const PERF = {
   shadowRadius: 34,       // 阴影相机覆盖半径（米），越小越清晰
   pixelScaleStep: 0.06,   // 每次调整步长
   pixelScaleCooldown: 1.4,// 调整冷却（秒），避免抖动
+};
+
+/**
+ * 关卡进度
+ * ---------------------------------------------------------------
+ * 每关的通关条件：地图探索率达到 exploreTarget，且场上敌人清空。
+ * 两者都满足才算「区域完全肃清」，进入下一关；最后一关结束游戏。
+ */
+export const LEVEL = {
+  total: 3,              // 总关卡数
+  exploreTarget: 0.72,   // 本关探索率目标（占全图比例）
+  nextDelay: 2.6,        // 达标后停留时间（秒），留出喘息再切关
+  // 逐关难度：敌人数量 / 同屏上限 / 血量倍率 / 移动速度倍率
+  scaling: [
+    { count: 18, maxAlive: 10, hpMul: 1.00, speedMul: 1.00 },
+    { count: 24, maxAlive: 12, hpMul: 1.25, speedMul: 1.12 },
+    { count: 30, maxAlive: 14, hpMul: 1.55, speedMul: 1.24 },
+  ],
 };
 
 /** 逻辑帧率：固定步长，保证物理与 AI 行为稳定（与渲染帧率解耦） */
