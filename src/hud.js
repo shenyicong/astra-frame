@@ -154,7 +154,9 @@ export class HUD {
     const [px, py] = toPx(player.pos.x, player.pos.z);
     ctx.save();
     ctx.translate(px, py);
-    ctx.rotate(-player.camYaw + Math.PI);
+    // 箭头默认朝画布上方（0,-1）；世界前方 (-sin yaw, -cos yaw) 映射到画布
+    // 后为 (-sin yaw, -cos yaw)，绕原点旋转 θ 得 (sinθ, -cosθ)，故 θ = -yaw
+    ctx.rotate(-player.camYaw);
     ctx.fillStyle = '#39f6ff';
     ctx.beginPath();
     ctx.moveTo(0, -7); ctx.lineTo(5, 6); ctx.lineTo(0, 3); ctx.lineTo(-5, 6);

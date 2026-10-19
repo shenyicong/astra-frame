@@ -245,7 +245,12 @@ export class Arena {
     const mat = new THREE.ShaderMaterial({
       uniforms: {
         fogMap: { value: fogTexture },
-        uColor: { value: new THREE.Color(0x39e7ff) },
+        // 已探索（记忆区）：柔和冷白，不刺眼
+        uMemory: { value: new THREE.Color(0xcfd9e6) },
+        // 当前视野内：青色能量光
+        uActive: { value: new THREE.Color(0x39e7ff) },
+        uMemoryLevel: { value: 0.34 },
+        uActiveLevel: { value: 1.15 },
       },
       vertexShader: /* glsl */`
         varying vec2 vFogUv;
@@ -258,12 +263,19 @@ export class Arena {
       `,
       fragmentShader: /* glsl */`
         uniform sampler2D fogMap;
-        uniform vec3 uColor;
+        uniform vec3 uMemory;
+        uniform vec3 uActive;
+        uniform float uMemoryLevel;
+        uniform float uActiveLevel;
         varying vec2 vFogUv;
         void main() {
           float f = texture2D(fogMap, vFogUv).r;
           if (f < 0.10) discard;              // 未探索：完全不绘制
-          gl_FragColor = vec4(uColor * (0.45 + f * 1.75), 1.0);
+          // 0 = 只残留记忆（走过但不在视野内），1 = 正处在视野中
+          float t = smoothstep(0.58, 0.95, f);
+          vec3  c = mix(uMemory, uActive, t);
+          float l = mix(uMemoryLevel, uActiveLevel, t);
+          gl_FragColor = vec4(c * l, 1.0);
         }
       `,
     });
