@@ -70,7 +70,13 @@
 
 ## 🚀 运行
 
-需要**本地 HTTP 服务**（项目用 ES Module，直接双击 `index.html` 会被浏览器的同源策略拦住）。
+**直接玩线上版（推荐）**：打开 **https://shenyicong.github.io/astra-frame/** ，点击画面开始
+（会请求鼠标锁定，这样视角才跟手）。
+
+> 无需安装任何环境，手机/平板/公司电脑都能直接打开。
+
+**想在本地改代码**：项目用的是 ES Module，直接双击 `index.html` 会被浏览器的同源策略拦住，
+需要起一个本地服务：
 
 ```bash
 # Python
@@ -80,9 +86,7 @@ python -m http.server 8000
 npx serve .
 ```
 
-然后打开 http://localhost:8000 ，点击画面开始（会请求鼠标锁定，这样视角才跟手）。
-
-> 不想本地跑？直接玩线上版：**https://shenyicong.github.io/astra-frame/**
+启动后访问自己的本地地址（如 `http://localhost:8000`）即可调试。
 
 ## 🗂️ 目录结构
 
