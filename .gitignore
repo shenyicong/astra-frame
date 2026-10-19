@@ -1,0 +1,18 @@
+# 依赖目录（如需用 npm 管理依赖时启用）
+node_modules/
+
+# 构建产物
+dist/
+build/
+
+# 编辑器
+.vscode/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+*.log
